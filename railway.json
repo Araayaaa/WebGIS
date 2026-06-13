@@ -5,7 +5,7 @@
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "apache2-foreground",
+    "startCommand": "rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf && a2enmod mpm_prefork && exec apache2-foreground",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
