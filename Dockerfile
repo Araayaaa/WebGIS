@@ -5,7 +5,8 @@ FROM php:8.2-apache
 RUN docker-php-ext-install mysqli pdo pdo_mysql
 
 # Ensure only one MPM is loaded (prefork required for mod_php)
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true && \
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.load \
+          /etc/apache2/mods-enabled/mpm_*.conf && \
     a2enmod mpm_prefork
 
 # Enable Apache mod_rewrite
