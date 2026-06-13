@@ -1,14 +1,14 @@
 #!/bin/bash
-set -e
 
 # Fix MPM conflict
-/bin/rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf || true
-/usr/sbin/a2enmod mpm_prefork
+rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf 2>/dev/null || true
+a2enmod mpm_prefork || true
 
-# Railway injects $PORT — make Apache listen on it (default 80)
+# Railway injects $PORT — configure Apache to listen on it
 APACHE_PORT=${PORT:-80}
-sed -i "s/^Listen 80$/Listen ${APACHE_PORT}/" /etc/apache2/ports.conf
-sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${APACHE_PORT}>/" /etc/apache2/sites-enabled/000-default.conf
+echo "Starting Apache on port $APACHE_PORT"
 
-echo "Apache listening on port ${APACHE_PORT}"
-exec /usr/local/bin/apache2-foreground
+sed -i "s/^Listen 80$/Listen $APACHE_PORT/" /etc/apache2/ports.conf || true
+sed -i "s/:80>/:$APACHE_PORT>/" /etc/apache2/sites-enabled/000-default.conf || true
+
+exec apache2-foreground
