@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poverty-Mapping GIS — Distribusi Bantuan Sosial</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- =====================================================================
+     NAVBAR
+===================================================================== -->
+<nav id="topNav">
+    <div class="nav-brand">
+        <span class="nav-brand-icon">🕌</span>
+        <div>
+            <div class="nav-brand-title">Poverty-Mapping GIS</div>
+            <div class="nav-brand-sub">Distribusi Bantuan Sosial</div>
+        </div>
+    </div>
+    <div class="nav-menu">
+        <button class="nav-item active" id="navHome" onclick="navigateTo('map')">
+            <span class="nav-item-icon">🗺</span>
+            <span class="nav-item-label">Peta</span>
+        </button>
+        <button class="nav-item" id="navReport" onclick="navigateTo('report')">
+            <span class="nav-item-icon">📢</span>
+            <span class="nav-item-label">Pelaporan</span>
+            <span class="nav-badge hidden" id="navReportBadge">0</span>
+        </button>
+    </div>
+    <div class="nav-right">
+        <div id="roleIndicator" class="role-pill">
+            <span id="roleIcon">👑</span>
+            <span id="roleLabel">Admin</span>
+        </div>
+        <button id="roleSwitchBtn" onclick="openRoleModal()">Ganti Role ▾</button>
+    </div>
+</nav>
+
+<!-- =====================================================================
+     ROLE MODAL
+===================================================================== -->
+<div id="roleModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:440px">
+        <div class="modal-header">
+            <div class="modal-title">🔐 Pilih Role Pengguna</div>
+            <button class="modal-close" onclick="closeRoleModal()">✕</button>
+        </div>
+        <div class="modal-body" style="padding:16px">
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Pilih role sesuai hak akses Anda. Perubahan langsung berlaku.</p>
+            <div class="role-cards">
+                <div class="role-card" id="roleCard_admin" onclick="setRole('admin')">
+                    <div class="role-card-icon">👑</div>
+                    <div class="role-card-name">Admin</div>
+                    <div class="role-card-desc">Akses penuh — tambah, edit, hapus, dan kelola semua data</div>
+                    <div class="role-card-perms">
+                        <span class="perm perm-green">✓ Tambah & Edit</span>
+                        <span class="perm perm-green">✓ Hapus & Reset</span>
+                        <span class="perm perm-green">✓ Lihat laporan</span>
+                        <span class="perm perm-green">✓ Kirim laporan</span>
+                    </div>
+                </div>
+                <div class="role-card" id="roleCard_surveyer" onclick="setRole('surveyer')">
+                    <div class="role-card-icon">📋</div>
+                    <div class="role-card-name">Surveyer</div>
+                    <div class="role-card-desc">Input data & lihat laporan — tidak bisa hapus atau reset</div>
+                    <div class="role-card-perms">
+                        <span class="perm perm-green">✓ Tambah & Edit</span>
+                        <span class="perm perm-red">✕ Hapus & Reset</span>
+                        <span class="perm perm-green">✓ Lihat laporan</span>
+                        <span class="perm perm-green">✓ Kirim laporan</span>
+                    </div>
+                </div>
+                <div class="role-card" id="roleCard_viewer" onclick="setRole('viewer')">
+                    <div class="role-card-icon">👁</div>
+                    <div class="role-card-name">Viewer</div>
+                    <div class="role-card-desc">Hanya lihat peta & kirim laporan masyarakat</div>
+                    <div class="role-card-perms">
+                        <span class="perm perm-green">✓ Lihat peta</span>
+                        <span class="perm perm-red">✕ Edit data</span>
+                        <span class="perm perm-red">✕ Lihat laporan</span>
+                        <span class="perm perm-green">✓ Kirim laporan</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     PAGE: PETA
+===================================================================== -->
+<div id="pagePeta" class="page active-page">
+
+    <div id="sidebar">
+        <div id="modeIndicator" class="mode-badge hidden">
+            <span class="pulse-dot"></span>
+            <span id="modeIndicatorText">Klik peta untuk menempatkan titik</span>
+        </div>
+
+        <div id="viewerNotice" style="display:none;margin:10px 14px 0;padding:10px 12px;background:#f3e8ff;border:1px solid #c4b5fd;border-radius:8px;font-size:11px;color:#5b21b6;font-weight:500;text-align:center;">
+            👁 Mode Viewer — Anda hanya dapat melihat data
+        </div>
+
+        <div class="btn-group" id="actionBtnGroup">
+            <button id="btnAddCenter" onclick="startAddingCenter()">🕌 Tambah Rumah Ibadah</button>
+            <button id="btnAddHouse" onclick="startAddingHouse()">🏠 Tambah Rumah Miskin</button>
+        </div>
+
+        <div class="stat-panel">
+            <div class="stat-title">📊 Statistik Bantuan</div>
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-num" id="statTotal">0</div>
+                    <div class="stat-label">Total Rumah</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-num" id="statInside">0</div>
+                    <div class="stat-label">Dalam Radius</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="stat-num" id="statHelped">0</div>
+                    <div class="stat-label">Sudah Dibantu</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-num" id="statOutside">0</div>
+                    <div class="stat-label">Luar Radius</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                🕌 Rumah Ibadah
+                <span id="centerCount" class="badge badge-teal">0</span>
+            </div>
+            <div class="search-wrap">
+                <input type="text" id="searchCenter" class="search-input" placeholder="🔍 Cari nama..." oninput="filterCenters()"/>
+            </div>
+            <select id="sortCenter" class="filter-select" onchange="filterCenters()">
+                <option value="">— Urutkan —</option>
+                <option value="kas_desc">💰 Kas terbanyak</option>
+                <option value="kas_asc">💰 Kas terkecil</option>
+                <option value="tanggungan_desc">👨‍👩‍👧 Tanggungan terbanyak</option>
+                <option value="tanggungan_asc">👨‍👩‍👧 Tanggungan terkecil</option>
+            </select>
+            <div id="centerList"><div class="empty-state">Belum ada rumah ibadah.</div></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                🏠 Data Rumah Miskin
+                <span id="houseCount" class="badge badge-orange">0</span>
+            </div>
+            <div class="search-wrap">
+                <input type="text" id="searchHouse" class="search-input" placeholder="🔍 Cari nama KK..." oninput="filterHouses()"/>
+            </div>
+            <div class="filter-row">
+                <select id="filterStatus" class="filter-select" onchange="filterHouses()">
+                    <option value="">Semua Status</option>
+                    <option value="helped">✅ Sudah dibantu</option>
+                    <option value="not_helped">⏳ Belum dibantu</option>
+                    <option value="outside">🟢 Luar radius</option>
+                </select>
+                <select id="filterMiskin" class="filter-select" onchange="filterHouses()">
+                    <option value="">Semua Kemiskinan</option>
+                    <option value="sangat_miskin">😢 Sangat Miskin</option>
+                    <option value="miskin">😟 Miskin</option>
+                    <option value="tidak_miskin">😊 Tidak Miskin</option>
+                </select>
+            </div>
+            <div id="houseList"><div class="empty-state">Belum ada data rumah miskin.</div></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🗺 Legenda</div>
+            <div class="legend-list">
+                <div class="legend-item"><span style="font-size:13px">🕌</span> Masjid / Musholla</div>
+                <div class="legend-item"><span style="font-size:13px">⛪</span> Gereja Katolik</div>
+                <div class="legend-item"><span style="font-size:13px">✝️</span> Gereja Protestan</div>
+                <div class="legend-item"><span style="font-size:13px">🛕</span> Vihara / Klenteng / Pura</div>
+                <div class="legend-item"><span class="legend-dot green"></span> Luar radius</div>
+                <div class="legend-item"><span class="legend-dot red"></span> Dalam radius (belum dibantu)</div>
+                <div class="legend-item"><span class="legend-dot yellow"></span> Sudah dibantu</div>
+                <div class="legend-item"><span class="legend-circle"></span> Area jangkauan</div>
+            </div>
+        </div>
+
+        <button id="btnReset" class="btn-danger" onclick="confirmReset()">🗑 Reset Semua Data</button>
+    </div>
+
+    <div id="map"></div>
+    <div id="radiusTooltip" class="radius-tooltip hidden"></div>
+</div>
+
+<!-- =====================================================================
+     PAGE: PELAPORAN
+===================================================================== -->
+<div id="pagePelaporan" class="page">
+    <div class="report-page">
+
+        <div class="report-col report-col-form">
+            <div class="report-col-header">
+                <div class="report-col-title">📢 Kirim Laporan</div>
+                <div class="report-col-sub">Laporkan kondisi kemiskinan yang belum terdata</div>
+            </div>
+            <div class="report-form-body">
+                <div class="form-group">
+                    <label class="form-label">Deskripsi Laporan *</label>
+                    <textarea id="reportText" class="form-input form-textarea" rows="5"
+                        placeholder="Contoh: Ada keluarga miskin di Jl. Merdeka No.5 yang belum terdata..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Pelapor (opsional)</label>
+                    <input type="text" id="reportName" class="form-input" placeholder="Nama Anda..."/>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Lokasi / Alamat (opsional)</label>
+                    <input type="text" id="reportLocation" class="form-input" placeholder="Jl. Contoh No.1, Kelurahan..."/>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Foto / Bukti (opsional)</label>
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('reportImg').click()">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Klik untuk upload foto</div>
+                        <div class="upload-sub">JPG, PNG, maks 5MB</div>
+                        <input type="file" id="reportImg" accept="image/*" style="display:none" onchange="previewImage(event)"/>
+                    </div>
+                    <div id="imgPreview" style="display:none;margin-top:8px;">
+                        <img id="previewImg" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;"/>
+                        <button class="remove-img-btn" onclick="removeImage()">✕ Hapus foto</button>
+                    </div>
+                </div>
+                <button class="form-submit" onclick="submitReport()" style="margin-top:4px;padding:12px;font-size:13px;">
+                    📤 Kirim Laporan
+                </button>
+            </div>
+        </div>
+
+        <div class="report-col report-col-list" id="reportColList">
+            <div class="report-col-header">
+                <div class="report-col-title">
+                    📋 Laporan Masuk
+                    <span id="reportCount" class="badge badge-orange" style="margin-left:8px">0</span>
+                </div>
+                <div class="report-col-sub">Daftar laporan dari masyarakat</div>
+            </div>
+            <div class="report-list-toolbar">
+                <input type="text" id="searchReport" class="search-input" placeholder="🔍 Cari laporan..." oninput="filterReports()" style="flex:1"/>
+                <select id="filterReportStatus" class="filter-select" onchange="filterReports()" style="width:auto;margin:0">
+                    <option value="">Semua</option>
+                    <option value="baru">🆕 Baru</option>
+                    <option value="ditangani">🔄 Ditangani</option>
+                    <option value="selesai">✅ Selesai</option>
+                </select>
+            </div>
+            <div id="reportList" class="report-list-container">
+                <div class="empty-state" style="margin-top:20px">Belum ada laporan masuk.</div>
+            </div>
+        </div>
+
+        <div class="report-col report-col-viewer" id="reportColViewer" style="display:none">
+            <div class="report-col-header">
+                <div class="report-col-title">👁 Mode Viewer</div>
+                <div class="report-col-sub">Daftar laporan hanya untuk Admin dan Surveyer</div>
+            </div>
+            <div style="padding:40px 20px;text-align:center">
+                <div style="font-size:48px;margin-bottom:16px">🔒</div>
+                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Akses Terbatas</div>
+                <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+                    Sebagai Viewer, Anda dapat mengirim laporan tapi tidak dapat melihat daftar laporan yang masuk.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- =====================================================================
+     MODAL — FORM DATA RUMAH
+===================================================================== -->
+<div id="houseModal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-title">🏠 Data Kemiskinan</div>
+            <button class="modal-close" onclick="closeHouseModal()">✕</button>
+        </div>
+        <div class="modal-body" id="houseModalBody"></div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     MODAL — DETAIL RUMAH
+===================================================================== -->
+<div id="detailModal" class="modal-overlay hidden">
+    <div class="modal-box modal-wide">
+        <div class="modal-header">
+            <div class="modal-title">📋 Detail Data Rumah</div>
+            <button class="modal-close" onclick="closeDetailModal()">✕</button>
+        </div>
+        <div class="modal-body" id="detailModalBody"></div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     MODAL — EDIT RUMAH IBADAH
+===================================================================== -->
+<div id="centerEditModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:460px">
+        <div class="modal-header">
+            <div class="modal-title">🕌 Edit Rumah Ibadah</div>
+            <button class="modal-close" onclick="closeCenterEditModal()">✕</button>
+        </div>
+        <div class="modal-body" id="centerEditModalBody">
+            <input type="hidden" id="ce_id"/>
+            <div class="form-group">
+                <label class="form-label">Jenis Rumah Ibadah</label>
+                <select class="form-input" id="ce_type">
+                    <option value="masjid">🕌 Masjid / Musholla</option>
+                    <option value="gereja katedral">⛪ Gereja Katolik / Katedral</option>
+                    <option value="gereja protestan">✝️ Gereja Protestan / Kapel</option>
+                    <option value="vihara">🛕 Vihara / Klenteng / Pura</option>
+                    <option value="sinagog">✡️ Sinagog</option>
+                    <option value="default">🏛️ Lainnya</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Rumah Ibadah *</label>
+                <input class="form-input" id="ce_name" type="text" placeholder="Nama rumah ibadah..."/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Alamat</label>
+                <input class="form-input" id="ce_address" type="text" placeholder="Alamat..."/>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1">
+                    <label class="form-label">Kas / Dana (Rp)</label>
+                    <input class="form-input" id="ce_kas" type="number" min="0" step="1000" placeholder="0"/>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label class="form-label">Radius (meter)</label>
+                    <input class="form-input" id="ce_radius" type="number" min="50" step="10" placeholder="300"/>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeCenterEditModal()">Batal</button>
+            <button class="btn-modal-save" onclick="saveCenterEdit()">💾 Simpan Perubahan</button>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     MODAL — DETAIL LAPORAN
+===================================================================== -->
+<div id="reportDetailModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:500px">
+        <div class="modal-header">
+            <div class="modal-title">📋 Detail Laporan</div>
+            <button class="modal-close" onclick="closeReportDetail()">✕</button>
+        </div>
+        <div class="modal-body" id="reportDetailBody"></div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     CUSTOM DATE PICKER
+===================================================================== -->
+<div id="datepickerOverlay" class="datepicker-overlay hidden" onclick="closeDatepickerIfOutside(event)">
+    <div class="datepicker-box" id="datepickerBox"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
