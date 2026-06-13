@@ -1,0 +1,11 @@
+{
+  "build": {
+    "builder": "dockerfile"
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "startCommand": "apache2-foreground",
+    "restartPolicyType": "on-failure",
+    "restartPolicyMaxRetries": 3
+  }
+}

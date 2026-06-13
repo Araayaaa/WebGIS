@@ -7,7 +7,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 $host = getenv('DB_HOST') ?: 'localhost';
 $user = getenv('DB_USER') ?: 'root';
 $password = getenv('DB_PASS') ?: '';
-$database = getenv('DB_NAME_03') ?: 'sig_bansos';
+$database = getenv('DB_NAME') ?: 'sig_spbu';
 
 $conn = new mysqli($host, $user, $password, $database);
 
