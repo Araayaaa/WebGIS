@@ -1,9 +1,13 @@
 <?php
-require_once 'koneksi.php';
+require_once 'auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Hanya menerima POST']); exit;
 }
+
+requireLogin();
+requirePermission('delete_houses');
+requirePermission('delete_centers');
 
 $conn->query("SET FOREIGN_KEY_CHECKS=0");
 $conn->query("TRUNCATE TABLE aid_logs");

@@ -1,8 +1,16 @@
 <?php
-require_once 'koneksi.php';
+require_once 'auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Hanya POST']); exit;
+}
+
+requireLogin();
+$id = intval($_POST['id'] ?? 0);
+if ($id > 0) {
+    requirePermission('edit_houses');
+} else {
+    requirePermission('create_houses');
 }
 
 $id            = intval($_POST['id']             ?? 0);

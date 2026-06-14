@@ -11,6 +11,45 @@ const MAP_ZOOM       = 15;
 const DEFAULT_RADIUS = 300;
 
 // ============================================================
+// AUTH CHECK
+// ============================================================
+let userSession = null;
+
+async function checkAuth() {
+    try {
+        const response = await fetch('check_auth.php');
+        if (response.status === 401) {
+            window.location.href = 'login.html';
+            return;
+        }
+        const data = await response.json();
+        userSession = data.user;
+        setRoleFromServer(data.user.role);
+    } catch (err) {
+        console.error('Auth check failed:', err);
+        window.location.href = 'login.html';
+    }
+}
+
+async function handleLogout() {
+    try {
+        await fetch('logout_api.php', { method: 'POST' });
+        window.location.href = 'login.html';
+    } catch (err) {
+        console.error('Logout failed:', err);
+    }
+}
+
+function setRoleFromServer(role) {
+    const roleMap = { 'admin': 'admin', 'surveyor': 'surveyer', 'viewer': 'viewer' };
+    currentRole = roleMap[role] || 'viewer';
+    const cfg = ROLE_CONFIG[currentRole];
+    document.getElementById('roleIcon').textContent = cfg.icon;
+    document.getElementById('roleLabel').textContent = cfg.label;
+    applyRoleUI();
+}
+
+// ============================================================
 // ROLE SYSTEM
 // ============================================================
 let currentRole = 'admin';
@@ -1458,5 +1497,6 @@ async function loadData() {
 // ============================================================
 // INIT
 // ============================================================
+checkAuth();
 applyRoleUI();
 loadData();

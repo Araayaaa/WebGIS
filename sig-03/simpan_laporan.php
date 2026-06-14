@@ -1,9 +1,12 @@
 <?php
-require_once 'koneksi.php';
+require_once 'auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Hanya POST']); exit;
 }
+
+requireLogin();
+requirePermission('create_reports');
 
 $name   = strip_tags(trim($_POST['name']   ?? 'Anonim'));
 $text   = strip_tags(trim($_POST['text']   ?? ''));

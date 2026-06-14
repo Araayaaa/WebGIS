@@ -1,9 +1,12 @@
 <?php
-require_once 'koneksi.php';
+require_once 'auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Hanya menerima POST']); exit;
 }
+
+requireLogin();
+requirePermission('edit_centers');
 
 $id     = intval($_POST['id']     ?? 0);
 $radius = intval($_POST['radius'] ?? 300);

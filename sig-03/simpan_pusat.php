@@ -1,11 +1,17 @@
 <?php
-require_once 'koneksi.php';
+require_once 'auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Hanya menerima POST']); exit;
 }
 
+requireLogin();
 $id      = intval($_POST['id']      ?? 0);
+if ($id > 0 || (isset($_POST['update']) && $_POST['update'] === '1')) {
+    requirePermission('edit_centers');
+} else {
+    requirePermission('create_centers');
+}
 $name    = $conn->real_escape_string(strip_tags(trim($_POST['name']    ?? '')));
 $address = $conn->real_escape_string(strip_tags(trim($_POST['address'] ?? '')));
 $kas     = floatval($_POST['kas']   ?? 0);

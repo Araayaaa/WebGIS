@@ -1,9 +1,12 @@
 <?php
-require_once 'koneksi.php';
+require_once 'auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Hanya menerima POST']); exit;
 }
+
+requireLogin();
+requirePermission('edit_houses');
 
 $houseId  = intval($_POST['house_id']  ?? 0);
 $aidStatus = $_POST['aid_status']      ?? 'outside';
