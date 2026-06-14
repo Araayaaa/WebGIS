@@ -31,12 +31,18 @@ async function checkAuth() {
     }
 }
 
-async function handleLogout() {
+window.handleLogout = async function() {
     try {
-        await fetch('logout_api.php', { method: 'POST' });
-        window.location.href = 'login.html';
+        const response = await fetch('logout_api.php', { method: 'POST' });
+        if (response.ok) {
+            window.location.href = 'login.html';
+        } else {
+            alert('Logout failed. Please try again.');
+            console.error('Logout response:', response.status);
+        }
     } catch (err) {
         console.error('Logout failed:', err);
+        alert('Error during logout: ' + err.message);
     }
 }
 
