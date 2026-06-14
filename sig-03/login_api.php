@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', '0');
+error_reporting(0);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -33,8 +35,21 @@ $stmt = $conn->prepare("
     JOIN roles r ON u.role_id = r.id
     WHERE u.username = ?
 ");
+
+if (!$stmt) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database error: ' . $conn->error]);
+    exit;
+}
+
 $stmt->bind_param('s', $username);
-$stmt->execute();
+if (!$stmt->execute()) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Query error: ' . $stmt->error]);
+    $stmt->close();
+    exit;
+}
+
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {

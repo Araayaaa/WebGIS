@@ -3,17 +3,26 @@
 // Initialize RBAC system - safe to run multiple times
 // Called by entrypoint to set up database on first deploy
 
-$host = getenv('DB_HOST') ?: 'localhost';
-$user = getenv('DB_USER') ?: 'root';
-$password = getenv('DB_PASS') ?: '';
-$database = getenv('DB_NAME_03') ?: 'sig_bansos';
+$host     = getenv('DB_HOST')     ?: 'localhost';
+$user     = getenv('DB_USER')     ?: 'root';
+$password = getenv('DB_PASS')     ?: '';
+$database = getenv('DB_NAME_03')  ?: 'sig_bansos';
 
-$conn = new mysqli($host, $user, $password, $database);
+// Retry connection up to 10 times (DB may not be ready immediately)
+$conn = null;
+for ($i = 1; $i <= 10; $i++) {
+    $conn = new mysqli($host, $user, $password, $database);
+    if (!$conn->connect_error) break;
+    echo "[RBAC] DB not ready (attempt $i/10): {$conn->connect_error}\n";
+    sleep(3);
+}
 
 if ($conn->connect_error) {
-    echo "DB Connection Error: {$conn->connect_error}\n";
+    echo "[RBAC] Failed to connect after 10 attempts: {$conn->connect_error}\n";
     exit(1);
 }
+
+echo "[RBAC] Connected to database.\n";
 
 $conn->set_charset("utf8mb4");
 
